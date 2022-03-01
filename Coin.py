@@ -1,7 +1,6 @@
 import config as cfg
-from utils import get_logger
+from utils import get_logger, read_data
 import os
-import pandas as pd
 
 
 class MetaBase(type):
@@ -37,13 +36,13 @@ class CoinTimeSeries(Coin):
     Holds time series (hence ts). Reads data from local disk, does not fetch from the server.
     """
 
-    def __init__(self, product):
+    def __init__(self, product="ETH-EUR"):
         super().__init__(product)
 
         self.__logger.info(f'Spawning CoinTimeSeries {self.product}')
         self._ts_filename = self.product + '.csv'
         self._ts_filepath = os.path.join(cfg.PATH_DB_TIMESERIES, self._ts_filename)
-        self._raw_data = self.read_data()
+        self._raw_data = read_data(product)
         self._raw_data[self.denomination] = self._raw_data['close']
         # self.start_time =
         # self.stop_time =
@@ -66,12 +65,5 @@ class CoinTimeSeries(Coin):
         """
         return self._raw_data[self.denomination]
 
-    def read_data(self):
-        """
-        Simple read_csv wrapper returning a df with correct column names and index.
-
-        """
-        self.__logger.info(f'Reading CSV file {self._ts_filepath}')
-        df = pd.read_csv(self._ts_filepath, index_col=0, header=0)
-        df.set_index('epoch', inplace=True)
-        return df
+if __name__ is "__main__":
+    c = CoinTimeSeries()

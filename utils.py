@@ -102,25 +102,10 @@ def get_client(cred_file='./cred.yaml'):
         logger.exception('One of the required keys in the cred file is missing.')
 
 
-def read_data(product_id):
+def read_data(product_id='ETH-EUR'):
     """
     Simple read_csv wrapper returning a df with correct column names and index.
     """
-    df = pd.read_csv(product_id, index_col=0, header=0)
+    df = pd.read_csv(filename(product_id), index_col=0, header=0)
     df.set_index('epoch', inplace=True)
     return df
-
-class MetaBase(type):
-    # Metaclass to attach a logger object with the subclass name. Otherwise self.logger() will always call the logger
-    # object of the highest parent.
-    def __init__(cls, *args):
-        super().__init__(*args)
-        cls.__logger = None
-        # Explicit name mangling
-        logger_attribute_name = '_' + cls.__name__ + '__logger'
-
-        # Logger name derived accounting for inheritance for the bonus marks
-        logger_name = '.'.join([c.__name__ for c in cls.mro()[-2::-1]])
-
-        setattr(cls, logger_attribute_name, get_logger(logger_name))
-
