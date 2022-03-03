@@ -1,4 +1,5 @@
 import datetime
+import time
 import os
 import pandas as pd
 from utils import get_logger, round_now_to_minute, get_client, column_names, filename, read_data
@@ -37,7 +38,7 @@ class Fetcher:
         if exists:
             self.logger.info('Previously saved file found, will get the last time point stored and use it as start '
                                'time.')
-            old_df = read_data(filepath)
+            old_df = read_data(self.product_id)
             last_stop = old_df.index.max()
             start = datetime.datetime.fromtimestamp(last_stop + self.granularity-1, tz=datetime.timezone.utc)
             self.logger.debug(old_df)
@@ -60,26 +61,30 @@ class Fetcher:
 
         # data is contained in a list, errors in a dict.
         if isinstance(data, list):
-            new_df = pd.DataFrame(data)
-            new_df = self.preprocess(new_df)
-            # store the data as a file.
-            self.logger.info(f"Got data with {new_df.shape} rows.")
-            self.logger.debug(new_df)
-            # merge old new
-            self.logger.info(f"Adding new {new_df.shape[0]} rows to local file.")
+            if not bool(data):  # if empty
+                self.logger.error(f"Data is an empty list")
+            else:
+                new_df = pd.DataFrame(data)
+                new_df = self.preprocess(new_df)
+                # store the data as a file.
+                self.logger.info(f"Got data with {new_df.shape} rows.")
+                self.logger.debug(new_df)
+                # merge old new
+                self.logger.info(f"Adding new {new_df.shape[0]} rows to local file.")
 
-            new_df.to_csv(filepath, mode='a', header=not exists, index=True)
+                new_df.to_csv(filepath, mode='a', header=not exists, index=True)
 
-            # decide if we should continue getting historical date
-            self.logger.debug(f"START: {start.timestamp()} - END: {stop.timestamp()} ==> "
-                                f"{start.timestamp() - stop.timestamp()} checks {self.granularity * 300}")
-            self.logger.debug(f"LAST_DOWNLOADED_TIME: {new_df['epoch'].max()} - END: {stop.timestamp()} ==> "
-                                f"{new_df['epoch'].max() - stop.timestamp()}")
-            self.logger.debug(f"TIME NOW: {int(time_now.timestamp())} - LAST_DOWNLOADED_TIME: {new_df['epoch'].max()} "
-                              f"== > {int(time_now.timestamp()) - new_df['epoch'].max()} seconds to go...")
-            if time_now.timestamp() > new_df['epoch'].max():
-                self.logger.debug(f"Fetching more...")
-                self.fetch_product()
+                # decide if we should continue getting historical date
+                self.logger.debug(f"START: {start.timestamp()} - END: {stop.timestamp()} ==> "
+                                    f"{start.timestamp() - stop.timestamp()} checks {self.granularity * 300}")
+                self.logger.debug(f"LAST_DOWNLOADED_TIME: {new_df['epoch'].max()} - END: {stop.timestamp()} ==> "
+                                    f"{new_df['epoch'].max() - stop.timestamp()}")
+                self.logger.debug(f"TIME NOW: {int(time_now.timestamp())} - LAST_DOWNLOADED_TIME: {new_df['epoch'].max()} "
+                                  f"== > {int(time_now.timestamp()) - new_df['epoch'].max()} seconds to go...")
+                if time_now.timestamp() > new_df['epoch'].max():
+                    self.logger.debug(f"Fetching more...")
+                    self.fetch_product()
+
         else:
             self.logger.error(f"Could not get historical data, instead got this:\n{data}")
 
@@ -91,7 +96,13 @@ class Fetcher:
         df.reset_index(drop=True, inplace=True)
         return df
 
+    def run(self):
+        while True:
+            self.fetch_product()
+            # blocking sleeper, need to use thread package later.
+            time.sleep(cfg.GRANULARITY)
+
 
 if __name__ is '__main__':
     f = Fetcher()
-    f.fetch_product()
+    f.run()
