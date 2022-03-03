@@ -17,7 +17,7 @@ class Fetcher:
         self.logger.info(f'Spawning Fetcher.')
         self.product_id = product_id
         self.granularity = granularity
-        self.start_year = 2021
+        self.start_year = cfg.START_YEAR
 
     def fetch_product(self):
         # check if the csv is saved
