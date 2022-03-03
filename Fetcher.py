@@ -23,7 +23,6 @@ class Fetcher:
         # check if the csv is saved
         # if not, make the first query
         # if yes, load it and check the last timestamp and make a query to get the new data.
-        self.logger.info(f'\n\n======================== Calling {__name__} ========================\n\n')
         time_now = round_now_to_minute(15)
         # time_now = 1610535600
 
