@@ -73,6 +73,14 @@ class CoinTimeSeries(Coin):
         """
         return self.data[self.denomination]
 
+    @property
+    def last_time_point(self):
+        return self.time.iloc[-1]
+
+    @property
+    def first_time_point(self):
+        return self.time.iloc[0]
+
 
 if __name__ is "__main__":
     c = CoinTimeSeries()
