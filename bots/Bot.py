@@ -3,6 +3,7 @@ from Coin import CoinTimeSeries
 from utils import round_now_to_minute
 import time
 from numpy.random import choice
+import pandas as pd
 
 
 class Bot(CoinTimeSeries):
@@ -32,12 +33,12 @@ class Bot(CoinTimeSeries):
         # TODO: For some reasons spits out same message 3 times for one single call of __logger.
         # https://stackoverflow.com/questions/6729268/log-messages-appearing-twice-with-python-logging
         self.__logger.info(f'Creating bot for {product}.')
-          # Time ticks in rounded 15 minutes...
         self.created = datetime.datetime.now().isoformat()
         self.params = params
         self._rec_status = None
         self._rec_time = None
         self.history = dict()  # Contains transaction history.
+        self.default_value = None
 
     def __repr__(self):
         return f"file path: {self._ts_filepath}\n" \
@@ -52,6 +53,47 @@ class Bot(CoinTimeSeries):
     def current_time(self):
         return int(round_now_to_minute().timestamp())
 
+    def feature_fun(self):
+        """
+        Executed to obtain features. Must be overwritten according to the subclass behavior.
+        :return:
+        """
+        return self.default_value
+
+    def decision_fun(self):
+        """
+        Executed to obtain a decision. Must be overwritten according to the subclass behavior.
+        :return:
+        """
+        return self.default_value
+
+    @property
+    def features(self):
+        """
+        Transforms params to features.
+        :return:
+        """
+        f = self.feature_fun()
+        return f
+
+    @property
+    def last_feature_value(self):
+        """
+        Returns the latest available feature values
+        :return:
+        """
+        if isinstance(self.features,pd.DataFrame):
+            return self.features.loc[self.features.index.max()].to_frame().T
+        else:
+            return self.features
+
+    def decision(self):  # TODO: Make time argument
+        """
+        Transforms features to decision.
+        :return:
+        """
+        return choice(self.outcomes)
+
     @property
     def rec_status(self):
         """
@@ -63,7 +105,7 @@ class Bot(CoinTimeSeries):
     def update_rec(self):
 
         self._rec_time = self.current_time
-        rec = choice(self.outcomes)
+        rec = self.decision()
         self._rec_status = rec
         self.history.update(self.rec_status)
         self.__logger.info(f'Updated recommendation: {self.rec_status}.')
@@ -78,20 +120,50 @@ class Bot(CoinTimeSeries):
 
 
 class ma_Bot(Bot):
+    """
+        Moving average bot.
+    """
+    def __init__(self, product: str = 'ETH-EUR', **params):
+        super().__init__(product, **params)
+        if 'window_length' not in list(params):
+            raise ValueError("ma_Bot needs a param argument with keys 'window_length'.")
 
-    def __init__(self, product: str = 'ETH-EUR', **kwargs):
-        super().__init__(product, **kwargs)
-        self.params = kwargs
-        # TODO: Add properties for big an dsmall winddows
-        # self.features =
+    def feature_fun(self):
+        c = list()
+        for params in self.params['window_length']:
+            c.append(
+                self.data.rolling(4*24*params).mean().rename(columns={'EUR': params})
+            )
+        return pd.concat(c, axis=1)
 
-    def features(self):
-        self.data.rolling(4*24*200).mean()
+    @property
+    def large_window(self):
+        """
+        Returns the parameters with large window.
+        """
+        return max(bot.params['window_length'])
+
+    @property
+    def small_window(self):
+        """
+        Returns the parameters with small window.
+        """
+        return min(bot.params['window_length'])
+
+    def decision_fun(self):
+        last_value_small_window = bot.last_feature_value[bot.small_window]
+        last_value_large_window = bot.last_feature_value[bot.large_window]
+
+        if last_value_large_window > last_value_small_window:
+            return "Sell"
+        elif last_value_large_window < last_value_small_window:
+            return "Buy"
 
 
 if __name__ == '__main__':
-    bot = Bot()
-    bot.run()
+    # bot = Bot()
+    bot = ma_Bot(window_length=[90, 30])
+    # bot.run()
 
 
 
