@@ -4,6 +4,8 @@ from utils import round_now_to_minute
 import time
 from numpy.random import choice
 import pandas as pd
+import os
+import config as cfg
 
 
 class Bot(CoinTimeSeries):
@@ -37,7 +39,12 @@ class Bot(CoinTimeSeries):
         self.params = params
         self._rec_status = None
         self._rec_time = None
-        self.history = dict()  # Contains transaction history.
+
+        self._history_file_name = self.product + '__' + self.__class__.__name__ + '.csv'
+        self._history_file_path = os.path.join(cfg.PATH_DB_BOT_HISTORY, self._history_file_name)
+        self._history_file_exists = os.path.isfile(self._history_file_path)
+
+        self._history = pd.DataFrame(columns=list(self.rec_status.keys()))
         self.default_value = None
 
     def __repr__(self):
@@ -52,6 +59,19 @@ class Bot(CoinTimeSeries):
     @property
     def current_time(self):
         return int(round_now_to_minute().timestamp())
+
+    @property
+    def history(self):
+        if os.path.isfile(self._history_file_path):
+            self._history = pd.read_csv(self._history_file_path, index_col=0, header=0)
+
+        return self._history
+
+    def update_history(self, value: dict):
+        self.__logger.info("Updating history file.")
+        self._history.loc[self.history.shape[0]] = [v for k, v in value.items()]
+        # TODO: Can be switched to append mode.
+        self._history.to_csv(self._history_file_path)
 
     def feature_fun(self):
         """
@@ -107,8 +127,9 @@ class Bot(CoinTimeSeries):
         self._rec_time = self.current_time
         rec = self.decision()
         self._rec_status = rec
-        self.history.update(self.rec_status)
         self.__logger.info(f'Updated recommendation: {self.rec_status}.')
+        self.update_history(self.rec_status)
+        self.__logger.info(f'Updated recommendation: {self.history}.')
 
     def run(self):
         """
@@ -119,7 +140,7 @@ class Bot(CoinTimeSeries):
             time.sleep(60*15)
 
 
-class ma_Bot(Bot):
+class MaBot(Bot):
     """
         Moving average bot.
     """
@@ -162,8 +183,8 @@ class ma_Bot(Bot):
 
 if __name__ == '__main__':
     # bot = Bot()
-    bot = ma_Bot(window_length=[90, 30])
-    # bot.run()
+    bot = MaBot(window_length=[90, 30])
+    bot.run()
 
 
 
