@@ -3,8 +3,8 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
-from utils import read_csv
-from utils import available_coins, get_logger
+from utils import read_data, filename
+from utils import list_local_products, get_logger
 
 logger = get_logger(__name__)
 
@@ -20,7 +20,7 @@ app.layout = html.Div([
     ),
     dcc.Checklist(
         id='selector',
-        options=[{'label': k, 'value': k} for k in available_coins()],
+        options=[{'label': k, 'value': k} for k in list_local_products()],
         value=[],
         labelStyle={'display': 'inline-block'}
     ),
@@ -34,10 +34,11 @@ app.layout = html.Div([
 def display_candlestick(coinname, slider_toggle):
 
     if coinname:
-        logger.info(f'{coinname} selected.')
-        df = read_csv('./db/' + coinname[0])
+        logger.info(f'{coinname[0]} selected.')
+        df = read_data(coinname[0])
+        logger.info(df.head(10))
         fig = go.Figure(go.Candlestick(
-            x=df['epoch'],
+            x=df.index,
             open=df['open'],
             high=df['high'],
             low=df['low'],
