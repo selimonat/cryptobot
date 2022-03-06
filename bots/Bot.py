@@ -69,7 +69,7 @@ class Bot(CoinTimeSeries):
 
     def update_history(self, value: dict):
         self.__logger.info("Updating history file.")
-        self._history.loc[self.history.shape[0]] = [v for k, v in value.items()]
+        self._history = self._history.append(pd.DataFrame.from_dict([value]))
         # TODO: Can be switched to append mode.
         self._history.to_csv(self._history_file_path)
 
@@ -85,7 +85,7 @@ class Bot(CoinTimeSeries):
         Executed to obtain a decision. Must be overwritten according to the subclass behavior.
         :return:
         """
-        return self.default_value
+        return choice(self.outcomes)
 
     @property
     def features(self):
@@ -112,7 +112,7 @@ class Bot(CoinTimeSeries):
         Transforms features to decision.
         :return:
         """
-        return choice(self.outcomes)
+        return self.decision_fun()
 
     @property
     def rec_status(self):
@@ -127,9 +127,9 @@ class Bot(CoinTimeSeries):
         self._rec_time = self.current_time
         rec = self.decision()
         self._rec_status = rec
-        self.__logger.info(f'Updated recommendation: {self.rec_status}.')
+        self.__logger.debug(f'Updated recommendation:\n {self.rec_status}.')
         self.update_history(self.rec_status)
-        self.__logger.info(f'Updated recommendation: {self.history}.')
+        self.__logger.debug(f'Updated history (last 3 entries):\n {self.history.tail(3)}.')
 
     def run(self):
         """
@@ -172,9 +172,10 @@ class MaBot(Bot):
         return min(bot.params['window_length'])
 
     def decision_fun(self):
-        last_value_small_window = bot.last_feature_value[bot.small_window]
-        last_value_large_window = bot.last_feature_value[bot.large_window]
-
+        last_value_small_window = bot.last_feature_value[self.small_window].values
+        last_value_large_window = bot.last_feature_value[self.large_window].values
+        self.__logger.info(f"Last value small window: {last_value_small_window}")
+        self.__logger.info(f"Last value big window: {last_value_large_window}")
         if last_value_large_window > last_value_small_window:
             return "Sell"
         elif last_value_large_window < last_value_small_window:
