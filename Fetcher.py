@@ -10,9 +10,8 @@ class Fetcher:
     """
         Fetches data from CB and saves to disk.
     """
-    def __init__(self,
-                 product_id='ETH-EUR',
-                 granularity=cfg.GRANULARITY):
+    def __init__(self, product_id='ETH-EUR', granularity=cfg.GRANULARITY):
+
         self.logger = get_logger("Fetcher")
         self.logger.info(f'Spawning Fetcher.')
         self.product_id = product_id
