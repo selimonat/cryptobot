@@ -19,6 +19,7 @@ class Fetcher:
         self.product_id = product_id
         self.granularity = granularity
         self.start_year = cfg.START_YEAR
+        self.auth_client = get_client()
 
     @property
     def columns(self):
@@ -56,9 +57,7 @@ class Fetcher:
         self.logger.info(f'Getting historical data for with start: {start.isoformat()}\n stop: {stop.isoformat()}.')
 
         # make the query with the start time
-        # TODO: put this to init
-        auth_client = get_client()
-        data = auth_client.get_product_historic_rates(product_id=self.product_id,
+        data = self.auth_client.get_product_historic_rates(product_id=self.product_id,
                                                       start=start.isoformat(),
                                                       end=stop.isoformat(),  # if end not provided than start is
                                                       # ignored.
@@ -112,11 +111,26 @@ class Fetcher:
             time.sleep(cfg.GRANULARITY)
 
 
+class FetcherArmy:
+    """ Class orchestrating individual Fetchers."""
+
+    def __init__(self, ensemble: list):
+        self.logger = get_logger("FetcherArmy...")
+        self.logger.info(f'Spawning a FetcherArmy with {len(ensemble)} fetchers.')
+        self.army = list()
+        for c in ensemble:
+            self.army.append(Fetcher(c))
+
+    def run(self):
+        for soldier in self.army:
+            soldier.run()
+
+
 if __name__ is '__main__':
-    # products = product_list()
-    # army = FetcherArmy(products)
-    # army.run()
-    soldier = Fetcher(product_id="GALA-EUR")
-    soldier.run()
+    products = product_list()[:3]
+    army = FetcherArmy(products)
+    army.run()
+    # soldier = Fetcher(product_id="GALA-EUR")
+    # soldier.run()
 
 
