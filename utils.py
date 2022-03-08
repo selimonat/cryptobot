@@ -5,11 +5,16 @@ import pandas as pd
 import os
 import config as cfg
 from pathlib import Path
+import datetime
+from math import floor
+from time import time
+
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
+
 
 def get_logger(name):
     # create logger
@@ -78,13 +83,16 @@ def round_now_to_minute(g=15):
     :param g: granularity level
     :return:
     """
+    t = datetime.datetime.fromtimestamp(time())
+    return datetime.datetime.fromtimestamp(floor(t.timestamp() / (60*g)) * (60*g))
 
-    from datetime import datetime
-    from math import floor
-    from time import time
 
-    t = datetime.fromtimestamp(time())
-    return datetime.fromtimestamp(floor(t.timestamp() / (60*g)) * (60*g))
+def parse_epoch(time_):
+    """
+    :param time_: epoch timestamp
+    :return: iso 8601 formatted datetime str that cbpro API is expecting.
+    """
+    return datetime.datetime.fromtimestamp(time_, tz=datetime.timezone.utc)
 
 
 def get_client(cred_file='./cred.yaml'):
