@@ -6,6 +6,10 @@ import os
 import config as cfg
 from pathlib import Path
 
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.width', 1000)
 
 def get_logger(name):
     # create logger
@@ -35,17 +39,22 @@ def list_local_products():
     return [Path(f).stem for f in all_files]
 
 
-def product_list():
+def product_list(denominated_in: tuple = ("EUR",)) -> list:
     """
-    Fetches cb product names excluding those denominated in Dollar or Pound.
+    Fetches cb product names with a given currency denomination.
     Wraps auth_client's get_products methods.
     :return:
+    a list of product names.
     """
-    logger.debug('Fetching product names.')
+    logger.debug('Fetching all product names.')
     auth_client = get_client()
     df = pd.DataFrame(auth_client.get_products())
-    # discard USD and GBP denominated products.
-    df = df.loc[~df['quote_currency'].isin(['USD', 'GBP'])]
+    logger.debug(df.iloc[:, :2].head())
+    # select coins with a given currency.
+    i = df['quote_currency'].isin(list(denominated_in))
+    logger.debug(f"Found {sum(i)} matching currencies.")
+    df = df.loc[i]
+    logger.debug(df.iloc[:, :2].head())
     df.reset_index(drop=True, inplace=True)
     logger.debug(f'Found {df.shape[0]} products.')
     return df['id'].to_list()
@@ -109,3 +118,6 @@ def read_data(product_id='ETH-EUR'):
     df = pd.read_csv(filename(product_id), index_col=0, header=0)
     df.set_index('epoch', inplace=True)
     return df
+
+if __name__ == '__main__':
+    product_list()
