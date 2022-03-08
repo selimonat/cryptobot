@@ -119,5 +119,6 @@ def read_data(product_id='ETH-EUR'):
     df.set_index('epoch', inplace=True)
     return df
 
+
 if __name__ == '__main__':
     product_list()
