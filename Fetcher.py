@@ -2,8 +2,10 @@ import datetime
 import time
 import os
 import pandas as pd
-from utils import get_logger, round_now_to_minute, get_client, column_names, filename, read_data
+from utils import get_logger, round_now_to_minute, get_client, column_names, filename, read_data, product_list
 import config as cfg
+
+logger = get_logger("Fetcher")
 
 
 class Fetcher:
@@ -12,11 +14,15 @@ class Fetcher:
     """
     def __init__(self, product_id='ETH-EUR', granularity=cfg.GRANULARITY):
 
-        self.logger = get_logger("Fetcher")
-        self.logger.info(f'Spawning Fetcher.')
+        self.logger = logger
+        self.logger.info(f'Spawning a {product_id} Fetcher.')
         self.product_id = product_id
         self.granularity = granularity
         self.start_year = cfg.START_YEAR
+
+    @property
+    def columns(self):
+        return column_names()
 
     def fetch_product(self):
         # check if the csv is saved
@@ -50,6 +56,7 @@ class Fetcher:
         self.logger.info(f'Getting historical data for with start: {start.isoformat()}\n stop: {stop.isoformat()}.')
 
         # make the query with the start time
+        # TODO: put this to init
         auth_client = get_client()
         data = auth_client.get_product_historic_rates(product_id=self.product_id,
                                                       start=start.isoformat(),
@@ -59,40 +66,44 @@ class Fetcher:
 
         # data is contained in a list, errors in a dict.
         if isinstance(data, list):
+
             if not bool(data):  # if empty
-                self.logger.error(f"Data is an empty list")
-            else:
-                new_df = pd.DataFrame(data)
-                new_df = self.preprocess(new_df)
-                # store the data as a file.
-                self.logger.info(f"Got data with {new_df.shape} rows.")
-                self.logger.debug(new_df)
-                # merge old new
-                self.logger.info(f"Adding new {new_df.shape[0]} rows to local file.")
+                # when an empty list is returned then we need to hack it a bit so that we can still insert it in the
+                # csv file. Because the epoch data in csv file will be used for the next call and the next call
+                # should use the next time point.
+                self.logger.error(f"Data is an empty list, will use a list of Nones instead")
+                data = [int(stop.timestamp()), *[None] * (len(self.columns)-2)]  # one column less.
+                data = [data]
 
-                new_df.to_csv(filepath, mode='a', header=not exists, index=True)
+            new_df = pd.DataFrame(data, columns=self.columns[:-1])
+            # new_df.columns = column_names()[:-1]
+            new_df[self.columns[-1]] = new_df['epoch'].apply(datetime.datetime.fromtimestamp,
+                                                               tz=datetime.timezone.utc)
+            new_df = new_df.sort_values(by='epoch', ascending=True)
+            new_df.reset_index(drop=True, inplace=True)
+            # new_df = self.preprocess(new_df)
 
-                # decide if we should continue getting historical date
-                self.logger.debug(f"START: {start.timestamp()} - END: {stop.timestamp()} ==> "
-                                    f"{start.timestamp() - stop.timestamp()} checks {self.granularity * 300}")
-                self.logger.debug(f"LAST_DOWNLOADED_TIME: {new_df['epoch'].max()} - END: {stop.timestamp()} ==> "
-                                    f"{new_df['epoch'].max() - stop.timestamp()}")
-                self.logger.debug(f"TIME NOW: {int(time_now.timestamp())} - LAST_DOWNLOADED_TIME: {new_df['epoch'].max()} "
-                                  f"== > {int(time_now.timestamp()) - new_df['epoch'].max()} seconds to go...")
-                if time_now.timestamp() > new_df['epoch'].max():
-                    self.logger.debug(f"Fetching more...")
-                    self.fetch_product()
+            # store the data as a file.
+            self.logger.info(f"Got data with {new_df.shape} rows.")
+            self.logger.debug(new_df)
+            # merge old new
+            self.logger.info(f"Adding new {new_df.shape[0]} rows to local file.")
+
+            new_df.to_csv(filepath, mode='a', header=not exists, index=True)
+
+            # decide if we should continue getting historical date
+            self.logger.debug(f"START: {start.timestamp()} - END: {stop.timestamp()} ==> "
+                                f"{start.timestamp() - stop.timestamp()} checks {self.granularity * 300}")
+            self.logger.debug(f"LAST_DOWNLOADED_TIME: {new_df['epoch'].max()} - END: {stop.timestamp()} ==> "
+                                f"{new_df['epoch'].max() - stop.timestamp()}")
+            self.logger.debug(f"TIME NOW: {int(time_now.timestamp())} - LAST_DOWNLOADED_TIME: {new_df['epoch'].max()} "
+                              f"== > {int(time_now.timestamp()) - new_df['epoch'].max()} seconds to go...")
+            if time_now.timestamp() > new_df['epoch'].max():
+                self.logger.debug(f"Fetching more...")
+                self.fetch_product()
 
         else:
             self.logger.error(f"Could not get historical data, instead got this:\n{data}")
-
-    @staticmethod
-    def preprocess(df):
-        df.columns = column_names()[:-1]
-        df[column_names()[-1]] = df['epoch'].apply(datetime.datetime.fromtimestamp, tz=datetime.timezone.utc)
-        df = df.sort_values(by='epoch', ascending=True)
-        df.reset_index(drop=True, inplace=True)
-        return df
 
     def run(self):
         while True:
@@ -102,5 +113,10 @@ class Fetcher:
 
 
 if __name__ is '__main__':
-    f = Fetcher()
-    f.run()
+    # products = product_list()
+    # army = FetcherArmy(products)
+    # army.run()
+    soldier = Fetcher(product_id="GALA-EUR")
+    soldier.run()
+
+
