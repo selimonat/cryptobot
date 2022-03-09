@@ -5,6 +5,7 @@ import pandas as pd
 from utils import get_logger, round_now_to_minute, get_client, column_names, filename, read_data, product_list, \
     parse_epoch
 import config as cfg
+from threading import Thread
 
 logger = get_logger("Fetcher")
 
@@ -124,7 +125,7 @@ class Fetcher:
 
 
 class FetcherArmy:
-    """ Class orchestrating individual Fetchers."""
+    """ Multi-thread orchestration of individual Fetchers."""
 
     def __init__(self, ensemble: list):
         self.logger = get_logger("FetcherArmy...")
@@ -134,12 +135,15 @@ class FetcherArmy:
             self.army.append(Fetcher(c))
 
     def run(self):
-        for soldier in self.army:
-            soldier.run()
+
+        threads = [Thread(target=soldier.run) for soldier in self.army]
+        # start the threads
+        for thread in threads:
+            thread.start()
 
 
 if __name__ is '__main__':
-    products = product_list()
+    products = product_list()[:2]
     army = FetcherArmy(products)
     army.run()
     # soldier = Fetcher(product_id="GALA-EUR")
