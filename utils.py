@@ -59,10 +59,10 @@ def product_list(denominated_in: tuple = ("EUR",)) -> list:
     i = df['quote_currency'].isin(list(denominated_in))
     logger.debug(f"Found {sum(i)} matching currencies.")
     df = df.loc[i]
-    logger.debug(df.iloc[:, :2].head())
     df.reset_index(drop=True, inplace=True)
+    logger.debug('\n' + df.iloc[:, :2].head().to_string())
     logger.debug(f'Found {df.shape[0]} products.')
-    return df['id'].to_list()
+    return sorted(df['id'].to_list())
 
 
 def filename(product_id):
