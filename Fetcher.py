@@ -143,7 +143,7 @@ class FetcherArmy:
 
 
 if __name__ is '__main__':
-    products = product_list()[:2]
+    products = product_list()
     army = FetcherArmy(products)
     army.run()
     # soldier = Fetcher(product_id="GALA-EUR")
