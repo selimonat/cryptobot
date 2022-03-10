@@ -120,12 +120,16 @@ def filename_timeseries(product_id):
     return os.path.join(cfg.PATH_DB_TIMESERIES, product_id) + '.csv'
 
 
-def filename_history(bot_name, product_id):
-    return os.path.join(cfg.PATH_DB_BOT_HISTORY, bot_name, product_id) + '.csv'
+def dir_history(bot_name): return os.path.join(cfg.PATH_DB_HISTORY, bot_name)
 
 
-def filename_features(bot_name, product_id):
-    return os.path.join(cfg.PATH_DB_BOT_FEATURE, bot_name, product_id) + '.csv'
+def filename_history(bot_name, product_id): return os.path.join(dir_history(bot_name), product_id) + '.csv'
+
+
+def dir_features(bot_name): return os.path.join(cfg.PATH_DB_FEATURE, bot_name)
+
+
+def filename_features(bot_name, product_id): return os.path.join(cfg.PATH_DB_FEATURE, bot_name, product_id) + '.csv'
 
 
 def read_timeseries(product_id='ETH-EUR'):
