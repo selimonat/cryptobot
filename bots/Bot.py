@@ -1,11 +1,12 @@
 import datetime
 from Coin import CoinTimeSeries
-from utils import round_now_to_minute
+from utils import round_now_to_minute, list_local_products
 import time
 from numpy.random import choice
 import pandas as pd
 import os
 import config as cfg
+from threading import Thread
 
 
 class Bot(CoinTimeSeries):
@@ -42,9 +43,9 @@ class Bot(CoinTimeSeries):
 
         self._history_file_name = self.product + '__' + self.__class__.__name__ + '.csv'
         self._history_file_path = os.path.join(cfg.PATH_DB_BOT_HISTORY, self._history_file_name)
-        self._history_file_exists = os.path.isfile(self._history_file_path)
 
         self._history = pd.DataFrame(columns=list(self.rec_status.keys()))
+        self._history.to_csv(self._history_file_path)
         self.default_value = None
 
     def __repr__(self):
@@ -62,13 +63,11 @@ class Bot(CoinTimeSeries):
 
     @property
     def history(self):
-        if os.path.isfile(self._history_file_path):
-            self._history = pd.read_csv(self._history_file_path, index_col=0, header=0)
-
+        self._history = pd.read_csv(self._history_file_path, index_col=0, header=0)
         return self._history
 
     def update_history(self, value: dict):
-        self.__logger.info("Updating history file.")
+        self.__logger.info(f"Updating history file for bot {self.__class__.__name__}.")
         self._history = self._history.append(pd.DataFrame.from_dict([value]))
         # TODO: Can be switched to append mode.
         self._history.to_csv(self._history_file_path)
@@ -127,9 +126,11 @@ class Bot(CoinTimeSeries):
         self._rec_time = self.current_time
         rec = self.decision()
         self._rec_status = rec
-        self.__logger.debug(f'Updated recommendation:\n {self.rec_status}.')
+        self.__logger.debug(f'Last reco for bot {self.__class__.__name__} working on {self.product}:\n'
+                            f'{self.rec_status}.')
         self.update_history(self.rec_status)
-        self.__logger.debug(f'Updated history (last 3 entries):\n {self.history.tail(3)}.')
+        self.__logger.debug(f'History (last 3 entries) for bot {self.__class__.__name__} working on {self.product}:\n'
+                            f'{self.history.tail(3)}.')
 
     def run(self):
         """
@@ -162,18 +163,18 @@ class MaBot(Bot):
         """
         Returns the parameters with large window.
         """
-        return max(bot.params['window_length'])
+        return max(self.params['window_length'])
 
     @property
     def small_window(self):
         """
         Returns the parameters with small window.
         """
-        return min(bot.params['window_length'])
+        return min(self.params['window_length'])
 
     def decision_fun(self):
-        last_value_small_window = bot.last_feature_value[self.small_window].values
-        last_value_large_window = bot.last_feature_value[self.large_window].values
+        last_value_small_window = self.last_feature_value[self.small_window].values
+        last_value_large_window = self.last_feature_value[self.large_window].values
         self.__logger.info(f"Last value small window: {last_value_small_window}")
         self.__logger.info(f"Last value big window: {last_value_large_window}")
         if last_value_large_window > last_value_small_window:
@@ -183,9 +184,11 @@ class MaBot(Bot):
 
 
 if __name__ == '__main__':
-    # bot = Bot()
-    bot = MaBot(window_length=[90, 30])
-    bot.run()
+    bots = [MaBot(product=p, window_length=[90, 30]) for p in list_local_products()[:5]]
+    threads = [Thread(target=b.run) for b in bots]
+    for thread in threads:
+        thread.start()
+
 
 
 
