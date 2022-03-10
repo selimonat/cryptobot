@@ -32,14 +32,14 @@ class Fetcher:
         # check if the csv is saved
         # if not, make the first query
         # if yes, load it and check the last timestamp and make a query to get the new data.
-        self.logger.info(f"========================Fetching Cycle Started========================")
+        self.logger.info(f"========================Starting Cycle for {self.product_id}========================")
         time_now = round_now_to_minute(15)
         # time_now = 1610535600
 
         filepath = filename(self.product_id)
         exists = os.path.isfile(filepath)
-        self.logger.info(f'Data for product {self.product_id} will be stored in {filepath}.')
-        self.logger.info(f'Granularity is {self.granularity}.')
+        self.logger.info(f'{self.product_id}: Data will be stored in {filepath}.')
+        self.logger.info(f'{self.product_id}: Granularity is {self.granularity}.')
 
         # infer start time.
         start = datetime.datetime(self.start_year, 1, 1, 0, 0, 0)
@@ -51,15 +51,15 @@ class Fetcher:
             last_stop = old_df.index.max()
             # Overwrite start point based on database.
             start = parse_epoch(last_stop + self.granularity - 1)  # wouldn't just +1 the same?
-            self.logger.debug('Last 3 rows of data in local file:\n' + old_df.tail(3).to_string())
-            self.logger.info(f'Found {parse_epoch(last_stop)} as the '
+            self.logger.info(f'{self.product_id}: Found {parse_epoch(last_stop)} as the '
                              f'latest stored data point, will use {start.isoformat()} as starting point.')
         else:
-            self.logger.info("Virgin call.")
+            self.logger.info(f"{self.product_id}: Virgin call.")
         # find the stop time based on granularity. Only 300 data points fit to one request.
         stop = parse_epoch(start.timestamp() + self.granularity * 300)
 
-        self.logger.info(f'Getting historical data for with start: {start.isoformat()} stop: {stop.isoformat()}.')
+        self.logger.info(f'{self.product_id}: Getting historical data for with start: {start.isoformat()} stop:'
+                         f' {stop.isoformat()}.')
 
         # make the query with the start time
         data = self.auth_client.get_product_historic_rates(product_id=self.product_id,
@@ -79,7 +79,7 @@ class Fetcher:
                 # In case of 1, we need to hack it a bit so that we can still insert it in the
                 # csv file. Because the epoch data in csv file will be used for the next call and the next call
                 # should use the next time point.
-                self.logger.info(f"Data is an empty list, will use a list of Nones instead.")
+                self.logger.info(f"{self.product_id}: Data is an empty list, will use a list of Nones instead.")
                 data = [int(stop.timestamp()), *[None] * (len(self.columns) - 2)]  # one column less.
                 data = [data]
                 # In case of 2, we should not write this empty row to disk if there were already records on the
@@ -87,7 +87,8 @@ class Fetcher:
                 # case we should just quit the loop
                 if exists:
                     if not old_df.isna().iloc[-1, 2]:
-                        self.logger.info(f"As the local file exists already we will not write this list of Nones to DB.")
+                        self.logger.info(f"{self.product_id}: As the local file exists already we will not write this "
+                                         f"list of Nones to DB.")
                         return
 
             new_df = pd.DataFrame(data, columns=self.columns[:-1])
@@ -97,18 +98,20 @@ class Fetcher:
             new_df.reset_index(drop=True, inplace=True)
 
             # merge old new
-            self.logger.info(f"Adding new {new_df.shape[0]} rows to DB.")
-            self.logger.debug('New data head:\n' + new_df.head(2).to_string())
-            self.logger.debug('New data tail:\n' + new_df.tail(2).to_string())
+            self.logger.info(f"{self.product_id}: Adding new {new_df.shape[0]} rows to DB.")
+            self.logger.debug(f'{self.product_id}: New data starting point {new_df.iloc[0,-1]}')
+            self.logger.debug(f'{self.product_id}: New data stopping point {new_df.iloc[-1,-1]}')
 
             new_df.to_csv(filepath, mode='a', header=not exists, index=True)
 
             # decide if we should continue getting historical date
-            self.logger.debug(f"START: {start.timestamp()} - END: {stop.timestamp()} ==> "
+            self.logger.debug(f"{self.product_id}: START: {start.timestamp()} - END: {stop.timestamp()} ==> "
                               f"{start.timestamp() - stop.timestamp()} checks {self.granularity * 300}")
-            self.logger.debug(f"LAST_DOWNLOADED_TIME: {new_df['epoch'].max()} - END: {stop.timestamp()} ==> "
+            self.logger.debug(f"{self.product_id}: LAST_DOWNLOADED_TIME: {new_df['epoch'].max()} - END:"
+                              f" {stop.timestamp()} ==> "
                               f"{new_df['epoch'].max() - stop.timestamp()}")
-            self.logger.debug(f"TIME NOW: {int(time_now.timestamp())} - LAST_DOWNLOADED_TIME: {new_df['epoch'].max()} "
+            self.logger.debug(f"{self.product_id}: TIME NOW: {int(time_now.timestamp())} - LAST_DOWNLOADED_TIME:"
+                              f" {new_df['epoch'].max()} "
                               f"== > {int(time_now.timestamp()) - new_df['epoch'].max()} seconds to go...")
             if time_now.timestamp() > new_df['epoch'].max():
                 self.logger.debug(f"Fetching more...")
@@ -143,7 +146,7 @@ class FetcherArmy:
 
 
 if __name__ is '__main__':
-    products = product_list()
+    products = product_list()[:10]
     army = FetcherArmy(products)
     army.run()
     # soldier = Fetcher(product_id="GALA-EUR")
