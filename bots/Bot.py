@@ -52,7 +52,7 @@ class Bot(CoinTimeSeries):
 
         self._history = pd.DataFrame(columns=list(self.rec_status.keys()))
         self._history.to_csv(self._filepath_history)
-        self.default_value = None
+        self.default_value = pd.DataFrame()
 
     def __repr__(self):
         return f"file path: {self._ts_filepath}\n" \
@@ -83,23 +83,17 @@ class Bot(CoinTimeSeries):
         Executed to obtain features. Must be overwritten according to the subclass behavior.
         :return:
         """
-        # TODO: save the feature timeseries to disk with the class_name and coin name
         return self.default_value
 
-    def decision_fun(self):
-        """
-        Executed to obtain a decision. Must be overwritten according to the subclass behavior.
-        :return:
-        """
-        return choice(self.outcomes)
 
     @property
-    def features(self):
+    def features(self) -> pd.DataFrame:
         """
         Transforms params to features.
         :return:
         """
         f = self.feature_fun()
+        f.to_csv(self._filepath_feature)
         return f
 
     @property
@@ -108,10 +102,17 @@ class Bot(CoinTimeSeries):
         Returns the latest available feature values
         :return:
         """
-        if isinstance(self.features,pd.DataFrame):
+        if isinstance(self.features, pd.DataFrame):
             return self.features.loc[self.features.index.max()].to_frame().T
         else:
             return self.features
+
+    def decision_fun(self):
+        """
+        Executed to obtain a decision. Must be overwritten according to the subclass behavior.
+        :return:
+        """
+        return choice(self.outcomes)
 
     def decision(self):  # TODO: Make time argument
         """
