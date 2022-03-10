@@ -1,5 +1,5 @@
 import config as cfg
-from utils import get_logger, read_data
+from utils import get_logger, read_timeseries
 import os
 import pandas as pd
 pd.set_option('display.max_columns', None)
@@ -45,10 +45,10 @@ class CoinTimeSeries(Coin):
         self.__logger.info(f'Spawning CoinTimeSeries {self.product}')
         self._ts_filename = self.product + '.csv'
         self._ts_filepath = os.path.join(cfg.PATH_DB_TIMESERIES, self._ts_filename)
-        self._raw_data = read_data(product)
+        self._raw_data = read_timeseries(product)
 
     def update(self):
-        self._raw_data = read_data(self.product)
+        self._raw_data = read_timeseries(self.product)
         self._raw_data[self.denomination] = self._raw_data['close']
 
     @property

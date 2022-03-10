@@ -2,7 +2,7 @@ import datetime
 import time
 import os
 import pandas as pd
-from utils import get_logger, round_now_to_minute, get_client, column_names, filename, read_data, product_list, \
+from utils import get_logger, round_now_to_minute, get_client, column_names, filename_timeseries, read_timeseries, product_list, \
     parse_epoch
 import config as cfg
 from threading import Thread
@@ -36,7 +36,7 @@ class Fetcher:
         time_now = round_now_to_minute(15)
         # time_now = 1610535600
 
-        filepath = filename(self.product_id)
+        filepath = filename_timeseries(self.product_id)
         exists = os.path.isfile(filepath)
         self.logger.info(f'{self.product_id}: Data will be stored in {filepath}.')
         self.logger.info(f'{self.product_id}: Granularity is {self.granularity}.')
@@ -46,7 +46,7 @@ class Fetcher:
 
         if exists:
             self.logger.info('Saved file found, will get the last time point stored and use it as start time.')
-            old_df = read_data(self.product_id)
+            old_df = read_timeseries(self.product_id)
             # TODO: Take the index of the last non-None entry
             last_stop = old_df.index.max()
             # Overwrite start point based on database.
