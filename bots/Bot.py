@@ -1,11 +1,10 @@
 import datetime
 from Coin import CoinTimeSeries
-from utils import round_now_to_minute, list_local_products
+from utils import round_now_to_minute, list_local_products, filename_history, filename_features, dir_history, dir_features
 import time
 from numpy.random import choice
 import pandas as pd
 import os
-import config as cfg
 from threading import Thread
 
 
@@ -40,12 +39,19 @@ class Bot(CoinTimeSeries):
         self.params = params
         self._rec_status = None
         self._rec_time = None
+        self.bot_name = self.__class__.__name__
+        # TODO: all this file i/o business should be heandled with another class actually.
+        self._filepath_history = filename_history(self.bot_name, self.product)
+        self._filepath_feature = filename_features(self.bot_name, self.product)
 
-        self._history_file_name = self.product + '__' + self.__class__.__name__ + '.csv'
-        self._history_file_path = os.path.join(cfg.PATH_DB_BOT_HISTORY, self._history_file_name)
+        # make the directories if necessary
+        for d in [dir_features(self.bot_name), dir_history(self.bot_name)]:
+            if not os.path.exists(d):
+                self.__logger.info(f"Creating directory {d}")
+                os.makedirs(d, exist_ok=True)
 
         self._history = pd.DataFrame(columns=list(self.rec_status.keys()))
-        self._history.to_csv(self._history_file_path)
+        self._history.to_csv(self._filepath_history)
         self.default_value = None
 
     def __repr__(self):
@@ -63,20 +69,21 @@ class Bot(CoinTimeSeries):
 
     @property
     def history(self):
-        self._history = pd.read_csv(self._history_file_path, index_col=0, header=0)
+        self._history = pd.read_csv(self._filepath_history, index_col=0, header=0)
         return self._history
 
     def update_history(self, value: dict):
         self.__logger.info(f"Updating history file for bot {self.__class__.__name__}.")
         self._history = self._history.append(pd.DataFrame.from_dict([value]))
         # TODO: Can be switched to append mode.
-        self._history.to_csv(self._history_file_path)
+        self._history.to_csv(self._filepath_history)
 
     def feature_fun(self):
         """
         Executed to obtain features. Must be overwritten according to the subclass behavior.
         :return:
         """
+        # TODO: save the feature timeseries to disk with the class_name and coin name
         return self.default_value
 
     def decision_fun(self):
@@ -139,6 +146,8 @@ class Bot(CoinTimeSeries):
         while True:
             self.update_rec()
             time.sleep(60*15)
+
+    # TODO: Make a fun to retrospectively generate recos.
 
 
 class MaBot(Bot):
