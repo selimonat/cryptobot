@@ -168,7 +168,7 @@ def read_features(bot_name='MaBot', product_id='ETH-EUR'):
     if os.path.exists(filename):
         logger.info(f"Reading {filename}")
         df = pd.read_csv(filename, index_col=0, header=0)
-        df.set_index('epoch', inplace=True)
+        # df.set_index('epoch', inplace=True) is already
         return df
     logger.info(f"Not found: {filename}")
     return False
