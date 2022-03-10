@@ -29,11 +29,9 @@ class Coin(metaclass=MetaBase):
     """
     def __init__(self, product: str = 'ETH-EUR'):
 
-        if len(product) == 7:
-            if product[3] == '-':
-                self.product = product
-                self.coinname, self.denomination = product.split('-')
-                self.__logger.info(f'Spawning Coin {self.product}')
+        self.product = product
+        self.coinname, self.denomination = product.split('-')
+        self.__logger.info(f'Spawning Coin {self.product}')
 
 
 class CoinTimeSeries(Coin):
