@@ -136,27 +136,42 @@ def read_timeseries(product_id='ETH-EUR'):
     """
     Simple read_csv wrapper returning a df with correct column names and index.
     """
-    df = pd.read_csv(filename_timeseries(product_id), index_col=0, header=0)
-    df.set_index('epoch', inplace=True)
-    return df
+    filename = filename_timeseries(product_id)
+    if os.path.exists(filename):
+        logger.info(f"Reading {filename}")
+        df = pd.read_csv(filename, index_col=0, header=0)
+        df.set_index('epoch', inplace=True)
+        return df
+    logger.info(f"Not found: {filename}")
+    return False
 
 
 def read_history(bot_name='MaBot', product_id='ETH-EUR'):
     """
     Simple read_csv wrapper returning a df with correct column names and index.
     """
-    df = pd.read_csv(filename_history(bot_name, product_id), index_col=0, header=0)
-    df.set_index('epoch', inplace=True)
-    return df
+    filename = filename_history(bot_name, product_id)
+    if os.path.exists(filename):
+        logger.info(f"Reading {filename}")
+        df = pd.read_csv(filename, index_col=0, header=0)
+        df.set_index('epoch', inplace=True)
+        return df
+    logger.info(f"Not found: {filename}")
+    return False
 
 
 def read_features(bot_name='MaBot', product_id='ETH-EUR'):
     """
     Simple read_csv wrapper returning a df with correct column names and index.
     """
-    df = pd.read_csv(filename_features(bot_name, product_id), index_col=0, header=0)
-    df.set_index('epoch', inplace=True)
-    return df
+    filename = filename_features(bot_name, product_id)
+    if os.path.exists(filename):
+        logger.info(f"Reading {filename}")
+        df = pd.read_csv(filename, index_col=0, header=0)
+        df.set_index('epoch', inplace=True)
+        return df
+    logger.info(f"Not found: {filename}")
+    return False
 
 
 if __name__ == '__main__':
