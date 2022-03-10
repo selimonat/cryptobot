@@ -2,11 +2,11 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.express as px
-from utils import read_timeseries, list_local_products, get_logger
+import utils
 
 
 def fig(product_id):
-    df = read_timeseries(product_id)
+    df = utils.read_timeseries(product_id)
     fig = px.line(df, x='datetime', y='close', title=product_id)
     fig.update_layout(title_font_size=30)
     # TODO: append feature traces as well.
@@ -14,10 +14,10 @@ def fig(product_id):
     return fig
 
 
-logger = get_logger(__name__)
+logger = utils.get_logger(__name__)
 app = dash.Dash(__name__)
 
-app.layout = html.Div([dcc.Graph(id=p, figure=fig(p)) for p in list_local_products()])
+app.layout = html.Div([dcc.Graph(id=p, figure=fig(p)) for p in utils.list_local_products()])
 
 
 
