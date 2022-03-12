@@ -30,11 +30,12 @@ def get_logger(name):
     # add ch to logger
     logger_.addHandler(ch)
     # do the same with a file handler.
-    f_handler = logging.FileHandler(os.path.join('log',f'{name}.log'))
+    if not os.path.exists('log'):
+        os.makedirs('log')
+    f_handler = logging.FileHandler(os.path.join('log', f'{name}.log'))
     f_handler.setLevel(logging.DEBUG)
     f_handler.setFormatter(formatter)
     logger_.addHandler(f_handler)
-
     return logger_
 
 
