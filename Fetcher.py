@@ -7,8 +7,6 @@ from utils import get_logger, round_now_to_minute, get_client, column_names, fil
 import config as cfg
 from threading import Thread
 
-logger = get_logger("Fetcher")
-
 
 class Fetcher:
     """
@@ -17,7 +15,7 @@ class Fetcher:
 
     def __init__(self, product_id='ETH-EUR', granularity=cfg.GRANULARITY):
 
-        self.logger = logger
+        self.logger = logger = get_logger(self.__class__.__name__ + product_id)
         self.logger.info(f'Spawning a {product_id} Fetcher.')
         self.product_id = product_id
         self.granularity = granularity
