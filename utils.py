@@ -20,15 +20,21 @@ def get_logger(name):
     # create logger
     logger_ = logging.getLogger(name)
     logger_.setLevel(logging.DEBUG)
-    # create console handler and set level to debug
+    # create formatter
+    fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    formatter = logging.Formatter(fmt)
+    # create console handler and set level to debug and add formatter to ch
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
-    # create formatter
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    # add formatter to ch
     ch.setFormatter(formatter)
     # add ch to logger
     logger_.addHandler(ch)
+    # do the same with a file handler.
+    f_handler = logging.FileHandler(os.path.join('log',f'{name}.log'))
+    f_handler.setLevel(logging.DEBUG)
+    f_handler.setFormatter(formatter)
+    logger_.addHandler(f_handler)
+
     return logger_
 
 
