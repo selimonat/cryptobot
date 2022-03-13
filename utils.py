@@ -150,7 +150,7 @@ def read_timeseries(product_id='ETH-EUR'):
         df.set_index('epoch', inplace=True)
         return df
     logger.info(f"Not found: {filename}")
-    return False
+    return None
 
 
 def read_history(bot_name='MaBot', product_id='ETH-EUR'):
@@ -178,7 +178,7 @@ def read_features(bot_name='MaBot', product_id='ETH-EUR'):
         # df.set_index('epoch', inplace=True) is already
         return df
     logger.info(f"Not found: {filename}")
-    return False
+    return None
 
 
 if __name__ == '__main__':
