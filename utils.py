@@ -85,7 +85,7 @@ def round_now_to_minute(g=15):
     """
     Floors datetime object at a given granularity level defined in minutes.
     :param g: granularity level
-    :return:
+    :return: datetime object
     """
     t = datetime.datetime.fromtimestamp(time())
     return datetime.datetime.fromtimestamp(floor(t.timestamp() / (60*g)) * (60*g))
@@ -174,7 +174,7 @@ def read_features(bot_name='MaBot', product_id='ETH-EUR'):
     filename = filename_features(bot_name, product_id)
     if os.path.exists(filename):
         logger.info(f"Reading {filename}")
-        df = pd.read_csv(filename, index_col=0, header=0)
+        df = pd.read_csv(filename, index_col=0, header=0, engine='c')
         # df.set_index('epoch', inplace=True) is already
         return df
     logger.info(f"Not found: {filename}")
