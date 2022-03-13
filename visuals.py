@@ -9,12 +9,17 @@ color = ['red', 'green', 'blue']
 
 
 def fig():
-    products = utils.list_local_products()[:9]
+    products = utils.list_local_products()[:4]
+    # collect titles for each subplot
+    titles = list()
+    for i, p in enumerate(products):
+        titles.append(f"({i}) - {p} updated {utils.round_now_to_minute(1)}")
+
     fig_ = make_subplots(rows=len(products),
                          cols=1,
                          shared_xaxes=True,
                          horizontal_spacing=0.05,
-                         subplot_titles=products)
+                         subplot_titles=titles)
 
     for n_row, product_id in enumerate(products):
         df = utils.read_timeseries(product_id)
@@ -63,21 +68,19 @@ def fig():
                           gridcolor='gray',
                           )
 
+        fig_.layout.update(showlegend=False,
+                           height=300*len(products),
+                           width=800,
+                           paper_bgcolor='rgba(0,0,0,0)',
+                           plot_bgcolor='rgba(0,0,0,0)',
+                           font_size=12,
+                           yaxis_title="EUR")
+    return html.Div(dcc.Graph(id='test', figure=fig_))
 
-    fig_.layout.update(showlegend=False,
-                       height=300*len(products),
-                       width=800,
-                       paper_bgcolor='rgba(0,0,0,0)',
-                       plot_bgcolor='rgba(0,0,0,0)',
-                       font_size=12,
-                       yaxis_title="EUR")
-    return dcc.Graph(id='test', figure=fig_)
 
-
-logger = utils.get_logger(__name__)
 app = dash.Dash(__name__)
 
-app.layout = html.Div(fig())
+app.layout = fig
 
 if __name__ == "__main__":
-    app.run_server(debug=True, dev_tools_hot_reload=True)
+    app.run_server(debug=False, dev_tools_hot_reload=True)
