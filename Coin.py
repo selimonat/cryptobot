@@ -8,30 +8,13 @@ pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 
 
-class MetaBase(type):
-    # Metaclass to attach a logger object with the subclass name. Otherwise self.logger() will always call the logger
-    # object of the highest parent.
-    def __init__(cls, *args):
-        super().__init__(*args)
-
-        # Explicit name mangling
-        logger_attribute_name = '_' + cls.__name__ + '__logger'
-
-        # Logger name derived accounting for inheritance for the bonus marks
-        logger_name = '.'.join([c.__name__ for c in cls.mro()[-2::-1]])
-
-        setattr(cls, logger_attribute_name, get_logger(logger_name))
-
-
-class Coin(metaclass=MetaBase):
+class Coin:
     """
     Representation of a coin described by the coinbase pro product name.
     """
     def __init__(self, product: str = 'ETH-EUR'):
-
         self.product = product
         self.coinname, self.denomination = product.split('-')
-        self.__logger.info(f'Spawning Coin {self.product}')
 
 
 class CoinTimeSeries(Coin):
@@ -41,8 +24,6 @@ class CoinTimeSeries(Coin):
 
     def __init__(self, product="ETH-EUR"):
         super().__init__(product)
-
-        self.__logger.info(f'Spawning CoinTimeSeries {self.product}')
         self._ts_filename = self.product + '.csv'
         self._ts_filepath = os.path.join(cfg.PATH_DB_TIMESERIES, self._ts_filename)
         self._raw_data = read_timeseries(product)

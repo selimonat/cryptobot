@@ -1,6 +1,7 @@
 import datetime
 from Coin import CoinTimeSeries
-from utils import round_now_to_minute, list_local_products, filename_history, filename_features, dir_history, dir_features
+from utils import round_now_to_minute, list_local_products, filename_history, filename_features, dir_history, \
+                  dir_features, get_logger
 import time
 from numpy.random import choice
 import pandas as pd
@@ -32,9 +33,8 @@ class Bot(CoinTimeSeries):
         A bot is created for a given product.
         """
         super().__init__(product)
-        # TODO: For some reasons spits out same message 3 times for one single call of __logger.
-        # https://stackoverflow.com/questions/6729268/log-messages-appearing-twice-with-python-logging
-        self.__logger.info(f'Creating bot for {product}.')
+        self.logger = get_logger(product + '_' + self.__class__.__name__ )
+        self.logger.info(f'Creating bot for {product}.')
         self.created = datetime.datetime.now().isoformat()
         self.params = params
         self._rec_status = None
@@ -47,7 +47,7 @@ class Bot(CoinTimeSeries):
         # make the directories if necessary
         for d in [dir_features(self.bot_name), dir_history(self.bot_name)]:
             if not os.path.exists(d):
-                self.__logger.info(f"Creating directory {d}")
+                self.logger.info(f"Creating directory {d}")
                 os.makedirs(d, exist_ok=True)
 
         self._history = pd.DataFrame(columns=list(self.rec_status.keys()))
@@ -73,7 +73,7 @@ class Bot(CoinTimeSeries):
         return self._history
 
     def update_history(self, value: dict):
-        self.__logger.info(f"Updating history file for bot {self.__class__.__name__}.")
+        self.logger.info(f"Updating history file for bot {self.__class__.__name__}.")
         self._history = self._history.append(pd.DataFrame.from_dict([value]))
         # TODO: Can be switched to append mode.
         self._history.to_csv(self._filepath_history)
@@ -126,7 +126,7 @@ class Bot(CoinTimeSeries):
         """
         Current recommendation status.
         """
-        # self.__logger.info(f'Recommendation at time {self.last_rec_time} is {self._rec_status}.')
+        # self.logger.info(f'Recommendation at time {self.last_rec_time} is {self._rec_status}.')
         return {'time': self._rec_time, 'rec': self._rec_status}
 
     def update_rec(self):
@@ -134,10 +134,10 @@ class Bot(CoinTimeSeries):
         self._rec_time = self.current_time
         rec = self.decision()
         self._rec_status = rec
-        self.__logger.debug(f'Last reco for bot {self.__class__.__name__} working on {self.product}:\n'
+        self.logger.debug(f'Last reco for bot {self.__class__.__name__} working on {self.product}:\n'
                             f'{self.rec_status}.')
         self.update_history(self.rec_status)
-        self.__logger.debug(f'History (last 3 entries) for bot {self.__class__.__name__} working on {self.product}:\n'
+        self.logger.debug(f'History (last 3 entries) for bot {self.__class__.__name__} working on {self.product}:\n'
                             f'{self.history.tail(3)}.')
 
     def run(self):
@@ -185,16 +185,18 @@ class MaBot(Bot):
     def decision_fun(self):
         last_value_small_window = self.last_feature_value[self.small_window].values
         last_value_large_window = self.last_feature_value[self.large_window].values
-        self.__logger.info(f"Last value small window: {last_value_small_window}")
-        self.__logger.info(f"Last value big window: {last_value_large_window}")
+        self.logger.info(f"Last value small window: {last_value_small_window}")
+        self.logger.info(f"Last value big window: {last_value_large_window}")
         if last_value_large_window > last_value_small_window:
             return "Sell"
         elif last_value_large_window < last_value_small_window:
             return "Buy"
+        else:
+            return None
 
 
 if __name__ == '__main__':
-    bots = [MaBot(product=p, window_length=[90, 30]) for p in list_local_products()[:5]]
+    bots = [MaBot(product=p, window_length=[90, 30]) for p in list_local_products()]
     threads = [Thread(target=b.run) for b in bots]
     for thread in threads:
         thread.start()
