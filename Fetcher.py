@@ -15,7 +15,7 @@ class Fetcher:
 
     def __init__(self, product_id='ETH-EUR', granularity=cfg.GRANULARITY):
 
-        self.logger = logger = get_logger(self.__class__.__name__ + '_' + product_id)
+        self.logger = get_logger(product_id + '_' + self.__class__.__name__)
         self.logger.info(f'Spawning a {product_id} Fetcher.')
         self.product_id = product_id
         self.granularity = granularity
@@ -166,6 +166,7 @@ class FetcherArmy:
             self.logger.info(f"Cycle Number {counter}.")
             for soldier in self.army:
                 soldier.run()
+            time.sleep(60)
 
 
 if __name__ is '__main__':
