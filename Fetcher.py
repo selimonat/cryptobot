@@ -15,12 +15,17 @@ class Fetcher:
 
     def __init__(self, product_id='ETH-EUR', granularity=cfg.GRANULARITY):
 
-        self.logger = logger = get_logger(self.__class__.__name__ + product_id)
+        self.logger = logger = get_logger(self.__class__.__name__ + '_' + product_id)
         self.logger.info(f'Spawning a {product_id} Fetcher.')
         self.product_id = product_id
         self.granularity = granularity
         self.start_year = cfg.START_YEAR
         self.auth_client = get_client()
+        self.filepath = filename_timeseries(self.product_id)
+        # create timeseries folder
+        if not os.path.exists(cfg.PATH_DB_TIMESERIES):
+            os.makedirs(cfg.PATH_DB_TIMESERIES)
+        self.cycle = 0
 
     @property
     def columns(self):
@@ -30,21 +35,22 @@ class Fetcher:
         # check if the csv is saved
         # if not, make the first query
         # if yes, load it and check the last timestamp and make a query to get the new data.
-        self.logger.info(f"========================Starting Cycle for {self.product_id}========================")
+        self.cycle += 1
+        self.logger.info(f"Starting cycle {self.cycle} for {self.product_id}========================")
         time_now = round_now_to_minute(15)
         # time_now = 1610535600
 
-        filepath = filename_timeseries(self.product_id)
-        exists = os.path.isfile(filepath)
-        self.logger.info(f'{self.product_id}: Data will be stored in {filepath}.')
+        exists = os.path.isfile(self.filepath)
+        self.logger.info(f'{self.product_id}: Data will be stored in {self.filepath}.')
         self.logger.info(f'{self.product_id}: Granularity is {self.granularity}.')
 
         # infer start time.
         start = datetime.datetime(self.start_year, 1, 1, 0, 0, 0)
-
+        current_rows = 0
         if exists:
-            self.logger.info('Saved file found, will get the last time point stored and use it as start time.')
             old_df = read_timeseries(self.product_id)
+            current_rows = old_df.shape[0]
+            self.logger.info(f'Saved file found with {old_df.shape[0]} rows.')
             # TODO: Take the index of the last non-None entry
             last_stop = old_df.index.max()
             # Overwrite start point based on database.
@@ -96,11 +102,11 @@ class Fetcher:
             new_df.reset_index(drop=True, inplace=True)
 
             # merge old new
-            self.logger.info(f"{self.product_id}: Adding new {new_df.shape[0]} rows to DB.")
+            self.logger.info(f"{self.product_id}: Will add {new_df.shape[0]} new rows, was {current_rows}.")
             self.logger.debug(f'{self.product_id}: New data starting point {new_df.iloc[0,-1]}')
             self.logger.debug(f'{self.product_id}: New data stopping point {new_df.iloc[-1,-1]}')
 
-            new_df.to_csv(filepath, mode='a', header=not exists, index=True)
+            new_df.to_csv(self.filepath, mode='a', header=not exists, index=True)
 
             # decide if we should continue getting historical date
             self.logger.debug(f"{self.product_id}: START: {start.timestamp()} - END: {stop.timestamp()} ==> "
@@ -119,10 +125,7 @@ class Fetcher:
             self.logger.error(f"Could not get historical data, instead got this:\n{data}")
 
     def run(self):
-        while True:
-            self.fetch_product()
-            # blocking sleeper, need to use thread package later.
-            time.sleep(cfg.GRANULARITY)
+        self.fetch_product()
 
 
 class FetcherArmy:
@@ -137,14 +140,21 @@ class FetcherArmy:
 
     def run(self):
 
-        threads = [Thread(target=soldier.run) for soldier in self.army]
-        # start the threads
-        for thread in threads:
-            thread.start()
+        counter = 0
+        while True:
+            counter += 1
+            self.logger.info(f"Thread Cycle Number {counter}.")
+            threads = [Thread(target=soldier.run, name=soldier.product_id) for soldier in self.army]
+            for thread in threads:
+                thread.start()
+
+            for thread in threads:
+                thread.join()
+            time.sleep(60)
 
 
 if __name__ is '__main__':
-    products = product_list()[:10]
+    products = product_list()
     army = FetcherArmy(products)
     army.run()
     # soldier = Fetcher(product_id="GALA-EUR")
