@@ -9,7 +9,7 @@ color = ['red', 'green', 'blue']
 
 
 def fig():
-    products = utils.list_local_products()[:4]
+    products = utils.list_local_products()
     # collect titles for each subplot
     titles = list()
     for i, p in enumerate(products):
