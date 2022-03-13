@@ -138,8 +138,11 @@ class FetcherArmy:
         for c in ensemble:
             self.army.append(Fetcher(c))
 
-    def run(self):
-
+    def run_threaded(self):
+        """
+        Threaded fetcher runner.
+        :return:
+        """
         counter = 0
         while True:
             counter += 1
@@ -151,6 +154,18 @@ class FetcherArmy:
             for thread in threads:
                 thread.join()
             time.sleep(60)
+
+    def run(self):
+        """
+        Unthreaded, serial fetcher runner.
+        :return:
+        """
+        counter = 0
+        while True:
+            counter += 1
+            self.logger.info(f"Cycle Number {counter}.")
+            for soldier in self.army:
+                soldier.run()
 
 
 if __name__ is '__main__':
