@@ -9,6 +9,7 @@ color = ['red', 'green', 'blue']
 
 logger = utils.get_logger('visuals')
 
+
 # TODO: Left Right columns for buy and sell signals with a header.
 # TODO: Show only first 10, ranked by signal strength.
 # TODO: Add Sell to Buy switches to the graph
@@ -25,11 +26,10 @@ def get_data(product_id):
 
 
 def subplot_traces(product_id):
-
     trace_ = list()
     start_time = time.time()
     df, df2 = get_data(product_id)
-    logger.debug(f"get_data for {product_id} took: {time.time()-start_time} s")
+    logger.debug(f"get_data for {product_id} took: {time.time() - start_time} s")
     start_time = time.time()
     trace_.append(go.Scatter(x=df.datetime,
                              y=df.close,
@@ -48,11 +48,11 @@ def subplot_traces(product_id):
                                  showlegend=False,
                                  hoverinfo='none',
                                  line=dict(color=color[n_line], width=2, )))
-    logger.debug(f"trace_generation for {product_id} took: {time.time()-start_time} s")
+    logger.debug(f"trace_generation for {product_id} took: {time.time() - start_time} s")
     return trace_
 
 
-products = utils.list_local_products()
+products = utils.list_local_products()[:2]
 # collect titles for each subplot
 titles = list()
 for i, p in enumerate(products):
@@ -61,7 +61,7 @@ for i, p in enumerate(products):
 fig_ = make_subplots(rows=len(products),
                      cols=1,
                      # shared_xaxes=True,
-                     # horizontal_spacing=0.05,
+                     # horizontal_spacing=0.01,
                      subplot_titles=titles,
                      print_grid=False)
 
@@ -70,14 +70,14 @@ row_ids = list()
 for row_id, p in enumerate(products):
     for _ in subplot_traces(p):
         traces_.append(_)
-        row_ids.append(row_id+1)
+        row_ids.append(row_id + 1)
 
 logger.debug("Adding traces...")
 start_time = time.time()
-fig_.add_traces(traces_, rows=row_ids, cols=[1]*len(row_ids))
-logger.debug(f"trace_appending for took: {time.time()-start_time} s")
+fig_.add_traces(traces_, rows=row_ids, cols=[1] * len(row_ids))
+logger.debug(f"trace_appending for took: {time.time() - start_time} s")
 
-fig_.update_layout(title_font_size=45, )
+fig_.update_layout(title_font_size=45)
 
 fig_.update_xaxes(showline=True,
                   ticks="inside",
@@ -103,16 +103,21 @@ fig_.update_yaxes(showline=True,
                   )
 
 fig_.layout.update(showlegend=False,
-                   height=300 * len(products),
-                   width=800,
+                   font_family="Courier New",
                    paper_bgcolor='rgba(0,0,0,0)',
                    plot_bgcolor='rgba(0,0,0,0)',
                    font_size=12,
-                   yaxis_title="EUR")
+                   )
 
 app = dash.Dash(__name__)
-
-app.layout = html.Div(dcc.Graph(id='test', figure=fig_))
+h1_style = {'text-align': 'center', 'fontSize': 36, 'fontFamily': "Courier New"}
+div_style = {'float': 'left', 'margin': 'auto', 'width': '49%'}
+app.layout = html.Div([
+    html.Div([html.H1('Sells', style=h1_style),
+              html.Div(dcc.Graph(id='test', figure=fig_))], style=div_style),
+    html.Div([html.H1('Buys', style=h1_style),
+              html.Div(dcc.Graph(id='test2', figure=fig_))], style=div_style)
+])
 
 if __name__ == "__main__":
     app.run_server(debug=False, dev_tools_hot_reload=False)
