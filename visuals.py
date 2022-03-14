@@ -9,6 +9,9 @@ color = ['red', 'green', 'blue']
 
 logger = utils.get_logger('visuals')
 
+# TODO: Left Right columns for buy and sell signals with a header.
+# TODO: Show only first 10, ranked by signal strength.
+
 
 def get_data(product_id):
     bot_name = 'MaBot'
