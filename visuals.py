@@ -30,7 +30,9 @@ def subplot_traces(product_id):
                              y=df.close,
                              mode='lines',
                              name=product_id,
-                             line=dict(color='black', width=1, )
+                             line=dict(color='black', width=1, ),
+                             showlegend=False,
+                             hoverinfo='none'
                              ))
 
     for n_line, col in enumerate(df2.columns):
@@ -38,6 +40,8 @@ def subplot_traces(product_id):
                                  y=df2[col],
                                  mode='lines',
                                  name=col,
+                                 showlegend=False,
+                                 hoverinfo='none',
                                  line=dict(color=color[n_line], width=2, )))
     logger.debug(f"trace_generation for {product_id} took: {time.time()-start_time} s")
     return trace_
@@ -106,4 +110,4 @@ app = dash.Dash(__name__)
 app.layout = html.Div(dcc.Graph(id='test', figure=fig_))
 
 if __name__ == "__main__":
-    app.run_server(debug=True, dev_tools_hot_reload=True)
+    app.run_server(debug=False, dev_tools_hot_reload=False)
