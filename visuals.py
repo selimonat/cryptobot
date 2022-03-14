@@ -56,9 +56,17 @@ fig_ = make_subplots(rows=len(products),
                      subplot_titles=titles,
                      print_grid=False)
 
-for n_row, p in enumerate(products):
-    for trace in subplot_traces(p):
-        fig_.add_trace(trace, row=n_row+1, col=1)
+traces_ = list()
+row_ids = list()
+for row_id, p in enumerate(products):
+    for _ in subplot_traces(p):
+        traces_.append(_)
+        row_ids.append(row_id+1)
+
+logger.debug("Adding traces...")
+start_time = time.time()
+fig_.add_traces(traces_, rows=row_ids, cols=[1]*len(row_ids))
+logger.debug(f"trace_appending for took: {time.time()-start_time} s")
 
 fig_.update_layout(title_font_size=45, )
 
