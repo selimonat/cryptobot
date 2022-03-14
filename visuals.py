@@ -12,6 +12,7 @@ logger = utils.get_logger('visuals')
 # TODO: Left Right columns for buy and sell signals with a header.
 # TODO: Show only first 10, ranked by signal strength.
 # TODO: Add Sell to Buy switches to the graph
+# TODO: Regular updates.
 
 
 def get_data(product_id):
