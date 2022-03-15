@@ -4,37 +4,50 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import utils
 import time
+from collections import defaultdict
 
 color = ['red', 'green', 'blue']
 
 logger = utils.get_logger('visuals')
 
 
-# TODO: Left Right columns for buy and sell signals with a header.
 # TODO: Show only first 10, ranked by signal strength.
 # TODO: Add Sell to Buy switches to the graph
 # TODO: Regular updates.
 
 
-def get_data(product_id):
+def get_data(product):
+    """
+    Gets all data of a given product.
+    :param product:
+    :return: 3 df for coin, feature timeseries and rec history.
+    """
     bot_name = 'MaBot'
-    coin = utils.read_timeseries(product_id)
-    features = utils.read_features(bot_name, product_id=product_id)
+    coin = utils.read_timeseries(product)
+    features = utils.read_features(bot_name, product_id=product)
     if features is not None:
         features.index = features.index.map(utils.parse_epoch)
-    return coin, features
+    history = utils.read_history(bot_name, product_id=product)
+    if history is not None:
+        history.index = history.index.map(utils.parse_epoch)
+    return coin, features, history
 
 
-def subplot_traces(product_id):
+def subplot_traces(product):
     trace_ = list()
     start_time = time.time()
-    df, df2 = get_data(product_id)
-    logger.debug(f"get_data for {product_id} took: {time.time() - start_time} s")
+    df, df2, df3 = get_data(product)
+    logger.debug(f"get_data for {product} took: {time.time() - start_time} s")
+    if df3.empty:
+        reco = None
+    else:
+        reco = df3.loc[df3.index == df3.index.max()].values[0][0]  # sell or buy or whatever
+
     start_time = time.time()
     trace_.append(go.Scatter(x=df.datetime,
                              y=df.close,
                              mode='lines',
-                             name=product_id,
+                             name=product,
                              line=dict(color='black', width=1, ),
                              showlegend=False,
                              hoverinfo='none'
@@ -48,76 +61,83 @@ def subplot_traces(product_id):
                                  showlegend=False,
                                  hoverinfo='none',
                                  line=dict(color=color[n_line], width=2, )))
-    logger.debug(f"trace_generation for {product_id} took: {time.time() - start_time} s")
-    return trace_
+    logger.debug(f"trace_generation for {product} took: {time.time() - start_time} s")
+    return {reco: trace_}
 
 
-products = utils.list_local_products()[:2]
-# collect titles for each subplot
-titles = list()
-for i, p in enumerate(products):
-    titles.append(f"({i}) - {p} updated {utils.round_now_to_minute(1)}")
+def get_subplot(sp_traces):
+    """
+    Builds a subplot object. Infers number of subplots based on sp_traces.
+    This is basically a wrapper over make_subplots.
+    :param sp_traces: All traces that are plotted in a subplot.
+    :return: Figure object, the output a wrapper make_subplot
+    """
+    # collect titles for each subplot
+    titles = list()
+    for i, p in enumerate(sp_traces.keys()):
+        titles.append(f"({i}) - {p} updated {utils.round_now_to_minute(1)}")
+    t_rows = len(titles)
 
-fig_ = make_subplots(rows=len(products),
-                     cols=1,
-                     # shared_xaxes=True,
-                     # horizontal_spacing=0.01,
-                     subplot_titles=titles,
-                     print_grid=False)
+    panel = make_subplots(rows=t_rows,
+                      cols=1,
+                      subplot_titles=titles,
+                      print_grid=False)
+    axes_params = {'showline': True,
+                   'ticks': "inside",
+                   'tickwidth': 2,
+                   'tickcolor': 'black',
+                   'ticklen': 5,
+                   'linecolor': 'black',
+                   'showgrid': True,
+                   'gridwidth': 1,
+                   'gridcolor': 'gray'}
+    layout_params = {'showlegend': False,
+                     'height': 300 * t_rows,
+                     'width': 600,
+                     'font_family': "Courier New",
+                     'paper_bgcolor': 'rgba(0,0,0,0)',
+                     'plot_bgcolor': 'rgba(0,0,0,0)',
+                     'font_size': 12,
+                     'title_font_size': 45}
+    panel.update_xaxes(**axes_params, showticklabels=True)
+    panel.update_yaxes(**axes_params)
+    panel.layout.update(layout_params)
+    return panel
 
-traces_ = list()
-row_ids = list()
+
+def tree(): return defaultdict(tree)
+
+
+products = utils.list_local_products()
+
+# First get the sp_traces
+all_traces = tree()
 for row_id, p in enumerate(products):
-    for _ in subplot_traces(p):
-        traces_.append(_)
-        row_ids.append(row_id + 1)
+    for rec, trace in subplot_traces(p).items():
+        all_traces[str(rec)][p] = trace  # example: panel_trances['Sell']['BTC-EUR'] = trace str conversion ensures
+        # that nans are converted to 'nan'. This is necessary as nan's cannot be used as keys.
 
-logger.debug("Adding traces...")
+# Here one can add selection logic based on importance of coins.
+pass
+
+# Add the sp_traces to figure
+logger.debug("Adding sp_traces...")
+panels = dict()
 start_time = time.time()
-fig_.add_traces(traces_, rows=row_ids, cols=[1] * len(row_ids))
+for rec, subplot_traces in all_traces.items():
+    # generate a panel to contain sp_traces.
+    panels[rec] = get_subplot(subplot_traces)
+    for row_id, (product_id, trace) in enumerate(subplot_traces.items()):
+        n_trace = len(trace)
+        panels[rec].add_traces(trace, rows=[row_id + 1] * n_trace, cols=[1] * n_trace)
 logger.debug(f"trace_appending for took: {time.time() - start_time} s")
-
-fig_.update_layout(title_font_size=45)
-
-fig_.update_xaxes(showline=True,
-                  ticks="inside",
-                  tickwidth=2,
-                  tickcolor='black',
-                  ticklen=5,
-                  linecolor='black',
-                  showgrid=True,
-                  gridwidth=1,
-                  gridcolor='gray',
-                  showticklabels=True)
-
-fig_.update_yaxes(showline=True,
-                  ticks="inside",
-                  tickwidth=2,
-                  tickcolor='black',
-                  ticklen=5,
-                  col=1,
-                  linecolor='black',
-                  showgrid=True,
-                  gridwidth=1,
-                  gridcolor='gray',
-                  )
-
-fig_.layout.update(showlegend=False,
-                   font_family="Courier New",
-                   paper_bgcolor='rgba(0,0,0,0)',
-                   plot_bgcolor='rgba(0,0,0,0)',
-                   font_size=12,
-                   )
 
 app = dash.Dash(__name__)
 h1_style = {'text-align': 'center', 'fontSize': 36, 'fontFamily': "Courier New"}
-div_style = {'float': 'left', 'margin': 'auto', 'width': '49%'}
+div_style = {'float': 'left', 'margin': 'auto', 'width': '33%'}
 app.layout = html.Div([
-    html.Div([html.H1('Sells', style=h1_style),
-              html.Div(dcc.Graph(id='test', figure=fig_))], style=div_style),
-    html.Div([html.H1('Buys', style=h1_style),
-              html.Div(dcc.Graph(id='test2', figure=fig_))], style=div_style)
-])
-
+    html.Div([html.H1(str(k), style=h1_style),
+              html.Div(dcc.Graph(id=k, figure=panels['Sell']))], style=div_style) for k in panels.keys()])
+# Need to get rid of this conditions
 if __name__ == "__main__":
     app.run_server(debug=False, dev_tools_hot_reload=False)
