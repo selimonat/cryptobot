@@ -5,6 +5,8 @@ import plotly.graph_objects as go
 import utils
 import time
 from collections import defaultdict
+from base64 import b64encode
+import config as cfg
 
 color = ['red', 'green', 'blue']
 
@@ -79,9 +81,9 @@ def get_subplot(sp_traces):
     t_rows = len(titles)
 
     panel = make_subplots(rows=t_rows,
-                      cols=1,
-                      subplot_titles=titles,
-                      print_grid=False)
+                          cols=1,
+                          subplot_titles=titles,
+                          print_grid=False)
     axes_params = {'showline': True,
                    'ticks': "inside",
                    'tickwidth': 2,
@@ -135,9 +137,25 @@ logger.debug(f"trace_appending for took: {time.time() - start_time} s")
 app = dash.Dash(__name__)
 h1_style = {'text-align': 'center', 'fontSize': 36, 'fontFamily': "Courier New"}
 div_style = {'float': 'left', 'margin': 'auto', 'width': '33%'}
-app.layout = html.Div([
-    html.Div([html.H1(str(k), style=h1_style),
-              html.Div(dcc.Graph(id=k, figure=panels[k]))], style=div_style) for k in panels.keys()])
-# Need to get rid of this conditions
+im_style = {'float': 'left', 'margin': 'auto', 'width': '600'}
+
+if cfg.RENDER_OPTION == "image":
+    # image rendering
+    def to_image(fig):
+        img_bytes = fig.to_image(format="png")
+        encoding = b64encode(img_bytes).decode()
+        img_b64 = "data:image/png;base64," + encoding
+        return html.Img(src=img_b64, style=im_style)
+    start_time = time.time()
+    app.layout = html.Div([
+        html.Div([html.H1(str(k), style=h1_style), to_image(panels[k])], style=div_style) for k in panels.keys()])
+    logger.debug(f"Final layout generation took: {time.time() - start_time} s")
+else:
+    # vector rendering
+    start_time = time.time()
+    app.layout = html.Div([
+        html.Div([html.H1(str(k), style=h1_style),
+                  html.Div(dcc.Graph(id=k, figure=panels[k]))], style=div_style) for k in panels.keys()])
+    logger.debug(f"Final layout generation took: {time.time() - start_time} s")
 if __name__ == "__main__":
     app.run_server(debug=False, dev_tools_hot_reload=False)
