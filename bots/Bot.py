@@ -7,7 +7,7 @@ from numpy.random import choice
 import pandas as pd
 import os
 from threading import Thread
-
+import config as cfg
 
 class Bot(CoinTimeSeries):
     """
@@ -145,7 +145,7 @@ class Bot(CoinTimeSeries):
         """
         while True:
             self.update_rec()
-            time.sleep(60*15)
+            time.sleep(cfg.GRANULARITY)
 
     # TODO: Make a fun to retrospectively generate recos.
 
