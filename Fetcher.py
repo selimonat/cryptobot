@@ -166,12 +166,11 @@ class FetcherArmy:
             self.logger.info(f"Cycle Number {counter}.")
             for soldier in self.army:
                 soldier.run()
-            time.sleep(60)
+            time.sleep(cfg.GRANULARITY)
 
 
 if __name__ is '__main__':
     products = product_list()
     army = FetcherArmy(products)
     army.run()
-    # soldier = Fetcher(product_id="GALA-EUR")
-    # soldier.run()
+
