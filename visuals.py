@@ -108,7 +108,7 @@ def get_subplot(sp_traces):
 def tree(): return defaultdict(tree)
 
 
-products = utils.list_local_products()
+products = utils.list_local_products()[:10]
 
 # First get the sp_traces
 all_traces = tree()
@@ -137,7 +137,7 @@ h1_style = {'text-align': 'center', 'fontSize': 36, 'fontFamily': "Courier New"}
 div_style = {'float': 'left', 'margin': 'auto', 'width': '33%'}
 app.layout = html.Div([
     html.Div([html.H1(str(k), style=h1_style),
-              html.Div(dcc.Graph(id=k, figure=panels['Sell']))], style=div_style) for k in panels.keys()])
+              html.Div(dcc.Graph(id=k, figure=panels[k]))], style=div_style) for k in panels.keys()])
 # Need to get rid of this conditions
 if __name__ == "__main__":
     app.run_server(debug=False, dev_tools_hot_reload=False)
