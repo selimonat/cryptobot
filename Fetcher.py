@@ -169,7 +169,7 @@ class FetcherArmy:
             time.sleep(cfg.GRANULARITY)
 
 
-if __name__ is '__main__':
+if __name__ == '__main__':
     products = product_list()
     army = FetcherArmy(products)
     army.run()
