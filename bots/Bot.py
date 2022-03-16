@@ -85,7 +85,6 @@ class Bot(CoinTimeSeries):
         """
         return self.default_value
 
-
     @property
     def features(self) -> pd.DataFrame:
         """
