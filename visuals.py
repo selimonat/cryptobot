@@ -110,7 +110,7 @@ def get_subplot(sp_traces):
 def tree(): return defaultdict(tree)
 
 
-products = utils.list_local_products()[:10]
+products = utils.list_local_products()
 
 # First get the sp_traces
 all_traces = tree()
