@@ -18,6 +18,7 @@ Not to be directly interfaced by users.
 ### Fetcher Class
 
 Fetches serially new data from Coinbase servers and saves to local DB. It takes a bit of time the first time it runs.
+`Fetcher` requires a `cred.yaml` file for authentication.
 
 ### Bot Class
 Bots read regularly and in parallel local data to generate `Buy` and `Sell` decisions, which are also 
@@ -41,6 +42,8 @@ write to log files under `/log`.
 `Python >=3.7.6`
 
 `pyenv 1.2.17-1-g89786b90`
+
+`cred.yaml` to connect to CoinBase with the following keys `api_key`, `api_secret`, `passphrase`. 
     
 ## Installation
 
