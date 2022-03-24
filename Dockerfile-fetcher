@@ -1,0 +1,25 @@
+# TODO: finish this
+# TODO: finish also dockerfiles for ELK and dashboard.
+# TODO: Send data to ELK directly instead of saving them to disk
+
+FROM python:3.7.6
+#
+RUN apt-get update
+RUN apt-get -y install python3-dev
+RUN apt-get -y install default-libmysqlclient-dev
+RUN apt-get -y install build-essential
+#
+#
+RUN mkdir /project
+COPY ./pyproject.toml /project
+COPY ./poetry.lock /project
+COPY Makefile /project
+COPY code /project
+
+
+#
+#RUN pip install -U pip
+#RUN pip install -r requirements.txt --extra-index-url https://www.piwheels.org/simple
+#RUN pip install mysqlclient==1.4.6
+#
+#CMD python ./Fetcher.py
