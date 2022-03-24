@@ -1,6 +1,9 @@
 # TODO: finish this
-# TODO: finish also dockerfiles for ELK and dashboard.
-# TODO: Send data to ELK directly instead of saving them to disk
+# TODO: finish also dockerfiles for ELK. Don't do a dashboard container, we will use kibana.
+# TODO: Send data to ELK directly instead of saving them to disk, replace all read_csv, to_csv methods
+# TODO: Needs a new class to send and receive time-series from the ELK
+# TODO: Create Kibana dashboards replacing the dashboard.
+# TODO: The new folder structure is not tested probably imports will not work.
 
 FROM python:3.7.6
 #
